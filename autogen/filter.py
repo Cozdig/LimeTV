@@ -1,14 +1,14 @@
 import glob
 import os.path
 
-from aggregator import add_data_in_db
+from autogen.aggregator import add_data_in_db
 
 
 multiplex = [
-    "Первый канал", "Россия 1", "Матч ТВ", "НТВ", "Пятый канал",
+    "Первый канал", "Россия 1", "Матч ТВ", "Телекомпания НТВ", "Пятый канал",
     "Россия К", "Россия 24", "Карусель", "ОТР", "ТВ Центр",
     "РЕН ТВ", "Спас", "СТС", "Домашний", "ТВ-3",
-    "Пятница!", "Звезда", "Мир", "ТНТ", "Муз ТВ",
+    "Пятница", "Звезда", "МИР-24", "ТНТ", "Муз ТВ",
 ]
 
 def filter(folder_path):
@@ -19,7 +19,7 @@ def filter(folder_path):
         channel_name = os.path.basename(json_name)
         name_without_json = channel_name.replace('.json', '')
         parts = name_without_json.split('_', 1)
-        channel_name = parts[1]
+        channel_name = parts[1].replace('_', '')
         if channel_name in multiplex:
             continue
         else:

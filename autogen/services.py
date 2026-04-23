@@ -1,18 +1,20 @@
-from datetime import datetime
+from datetime import datetime, timedelta
 from autogen.models import Program
 
-def push_priority_count(programs):
+def push_priority_count():
     """Считает приоритет для пуша каждой программы в канале"""
+    dates = Program.objects.values_list('date', flat=True).distinct().order_by('date')
+
     content_type_scores = {
-        #1.0
+        # 1.0
         "Спорт": 1.0, "Боевик": 1.0, "Экшн": 1.0, "Экшен": 1.0, "Трансляция": 1.0,
-        #0.9
+        # 0.9
         "Новости": 0.9, "Репортаж": 0.9, "Аналитика": 0.9,
         "Интервью": 0.9, "Расследование": 0.9, "Политика": 0.9,
-        #0.8
+        # 0.8
         "Х/ф": 0.8, "Фильм": 0.8, "Концерт": 0.8,
         "Фестиваль": 0.8, "Игра": 0.8, "Чарт": 0.8,
-        #0.7
+        # 0.7
         "М/с": 0.7, "Аниме": 0.7, "Приключения": 0.7,
         "Фэнтези": 0.7, "Фантастика": 0.7, "Триллер": 0.7,
         "Детектив": 0.7, "Криминал": 0.7, "Мистика": 0.7, "Ужасы": 0.7,
@@ -48,18 +50,18 @@ def push_priority_count(programs):
     }
 
     prime_time_scores = {
-        "0": 0.4, "1": 0.4,
-        "2": 0.2, "3": 0.2,
-        "4": 0.2, "5": 0.2,
-        "6": 0.2, "7": 0.2,
-        "8": 0.2, "9": 0.2,
-        "10": 0.2, "11": 0.2,
-        "12": 0.2, "13": 0.2,
-        "14": 0.2, "15": 0.2,
-        "16": 0.2, "17": 0.7,
-        "18": 0.7, "19": 1.0,
-        "20": 1.0, "21": 1.0,
-        "22": 1.0, "23": 0.4,
+        0: 0.4, 1: 0.4,
+        2: 0.2, 3: 0.2,
+        4: 0.2, 5: 0.2,
+        6: 0.2, 7: 0.2,
+        8: 0.2, 9: 0.2,
+        10: 0.2, 11: 0.2,
+        12: 0.2, 13: 0.2,
+        14: 0.2, 15: 0.2,
+        16: 0.2, 17: 0.7,
+        18: 0.7, 19: 1.0,
+        20: 1.0, 21: 1.0,
+        22: 1.0, 23: 0.4,
     }
 
     rating_scores = {
@@ -70,84 +72,129 @@ def push_priority_count(programs):
         18: 1.0,
     }
 
-    results = []
 
-    for program in programs:
-        content_score = 0.0
-        categories = program.get('category', [])
+    for date in dates:
+        results = []
+        programs_qs = Program.objects.filter(date=date)
+        for program in programs_qs:
+            content_score = 0.0
+            categories = program.category.split(', ') if program.category else []
 
-        for category in categories:
-            if category in content_type_scores:
-                content_type_score = max(content_score, content_type_scores[category])
+            for category in categories:
+                if category in content_type_scores:
+                    content_score = max(content_score, content_type_scores[category])
 
-        if 'start_time' in program:
-            start_date = datetime.strptime(program['start_time'], '%Y-%m-%d %H:%M:%S')
-            hour = start_date.hour
+            if content_score == 0.0:
+                content_score = 0.3
 
-            prime_time_score = prime_time_scores.get(hour)
+            hour = program.start_time.hour
+            prime_time_score = prime_time_scores.get(hour, 0.2)
 
-        age = program.get('age_rating')
-        rating_score = rating_scores.get(age)
+            age = program.age_rating
+            rating_score = rating_scores.get(age, 0.2)
 
-        series_boost = 0.0
-        sub_title = program.get('sub_title', '')
-        for key, score in series_boosts.items():
-            if key in sub_title:
-                series_boost = score
-                break
+            series_boost = 0.0
+            if program.sub_title:
+                for key, score in series_boosts.items():
+                    if key in program.sub_title:
+                        series_boost = score
+                        break
 
+            push_priority = (
+                    (0.5 * content_score) +
+                    (0.25 * prime_time_score) +
+                    (0.15 * rating_score) +
+                    (0.10 * series_boost)
+            )
 
-
-        push_priority = (
-                (0.5 * content_type_score) +
-                (0.25 * prime_time_score) +
-                (0.15 * rating_score) +
-                (0.10 * series_boost)
-        )
-
-        if "премьера" in program.get("description", "").lower():
-            first_priority = True
-        else:
             first_priority = False
+            if program.description and "премьера" in program.description.lower():
+                first_priority = True
 
-        results.append({
-            'program': program,
-            'program_id': program.get("program_id"),
-            'priority': round(push_priority, 3),
-            'first_priority': first_priority,
-            'scores': {
-                'content_score': content_score,
-                'prime_time_score': prime_time_score,
-                'rating_score': rating_score,
-                'series_boost': series_boost
-            }
-        })
+            results.append({
+                'program': program,
+                'program_id': program.program_id,
+                'priority': round(push_priority, 3),
+                'first_priority': first_priority,
+                'scores': {
+                    'content_score': content_score,
+                    'prime_time_score': prime_time_score,
+                    'rating_score': rating_score,
+                    'series_boost': series_boost
+                }
+            })
 
 
+        max_priority = max(result['priority'] for result in results)
+        top_programs = []
 
-    max_priority = max(result['priority'] for result in results)
-    top_programs = []
+        for result in results:
+            if result['priority'] == max_priority and result['first_priority']:
+                result['premier'] = True
+                top_programs.append(result)
+            elif result['first_priority']:
+                result['premier'] = True
+                top_programs.append(result)
+            elif result['priority'] == max_priority:
+                result['premier'] = False
+                top_programs.append(result)
 
-    for result in results:
-        if result['priority'] == max_priority and result['first_priority']:
-            result['premier'] = True
-            top_programs.append(result)
-            continue
-        elif result['first_priority']:
-            result["premier"] = True
-            top_programs.append(result)
-            continue
-        elif result['priority'] == max_priority:
-            result["premier"] = False
-            top_programs.append(result)
-            continue
 
-    for program in top_programs:
-        Program.objects.update_or_create(
-            program_id=program['program_id'],
-            defaults={
-                "priority": program["priority"],
-                "premier": program["premier"]
-            }
-        )
+        for program_data in top_programs:
+            Program.objects.update_or_create(
+                program_id=program_data['program_id'],
+                defaults={
+                    "priority": program_data["priority"],
+                    "premier": program_data["premier"]
+                }
+            )
+
+
+def get_max_priority_programs():
+
+    today = datetime.now().date()
+    monday = today - timedelta(days=today.weekday())
+    sunday = monday + timedelta(days=6)
+
+    dates = Program.objects.filter(
+        date__gte=monday,
+        date__lte=sunday
+    ).values_list('date', flat=True).distinct().order_by('date')
+
+    result = {}
+    for date in dates:
+        programs = Program.objects.filter(date=date).order_by('-priority')
+        premieres = programs.filter(premier=True)
+
+        seen_titles = set()
+
+        if premieres:
+            top_3 = []
+            for prog in premieres:
+                if prog.title not in seen_titles:
+                    top_3.append(prog)
+                    seen_titles.add(prog.title)
+                    break
+
+            regular = programs.filter(premier=False).order_by('-priority')
+            for prog in regular:
+                if prog.title not in seen_titles:
+                    top_3.append(prog)
+                    seen_titles.add(prog.title)
+                    if len(top_3) >= 3:
+                        break
+
+            result[date] = top_3
+        else:
+            regular = programs.filter(premier=False).order_by('-priority')
+            top_3 = []
+            for prog in regular:
+                if prog.title not in seen_titles:
+                    top_3.append(prog)
+                    seen_titles.add(prog.title)
+                    if len(top_3) >= 3:
+                        break
+            result[date] = top_3
+
+    return result
 

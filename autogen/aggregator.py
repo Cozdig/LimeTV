@@ -18,8 +18,6 @@ def add_data_in_db(file_name):
         channel, _ = Channel.objects.get_or_create(channel_name=channel_name)
 
         for day in data.get('epg', []):
-            if not data.get('epg'):
-                return
             date = datetime.strptime(day['date'],'%d.%m.%Y').date()
 
             for program in day.get('data'):
