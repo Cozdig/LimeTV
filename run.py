@@ -1,11 +1,10 @@
 import os
 import django
 
-from autogen.notific_gen import pushes_generator
-
 os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'config.settings')
 django.setup()
 
+from autogen.notific_gen import pushes_generator
 from autogen.filter import filter
 from autogen.services import push_priority_count, get_max_priority_programs
 

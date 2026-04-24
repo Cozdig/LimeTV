@@ -72,9 +72,7 @@ def push_priority_count():
         18: 1.0,
     }
 
-
     for date in dates:
-        results = []
         programs_qs = Program.objects.filter(date=date)
         for program in programs_qs:
             content_score = 0.0
@@ -107,51 +105,16 @@ def push_priority_count():
                     (0.10 * series_boost)
             )
 
-            first_priority = False
+            is_premier = False
             if program.description and "премьера" in program.description.lower():
-                first_priority = True
+                is_premier = True
 
-            results.append({
-                'program': program,
-                'program_id': program.program_id,
-                'priority': round(push_priority, 3),
-                'first_priority': first_priority,
-                'scores': {
-                    'content_score': content_score,
-                    'prime_time_score': prime_time_score,
-                    'rating_score': rating_score,
-                    'series_boost': series_boost
-                }
-            })
-
-
-        max_priority = max(result['priority'] for result in results)
-        top_programs = []
-
-        for result in results:
-            if result['priority'] == max_priority and result['first_priority']:
-                result['premier'] = True
-                top_programs.append(result)
-            elif result['first_priority']:
-                result['premier'] = True
-                top_programs.append(result)
-            elif result['priority'] == max_priority:
-                result['premier'] = False
-                top_programs.append(result)
-
-
-        for program_data in top_programs:
-            Program.objects.update_or_create(
-                program_id=program_data['program_id'],
-                defaults={
-                    "priority": program_data["priority"],
-                    "premier": program_data["premier"]
-                }
-            )
+            program.priority = round(push_priority, 3)
+            program.premier = is_premier
+            program.save(update_fields=['priority', 'premier'])
 
 
 def get_max_priority_programs():
-
     today = datetime.now().date()
     monday = today - timedelta(days=today.weekday())
     sunday = monday + timedelta(days=6)
@@ -164,37 +127,25 @@ def get_max_priority_programs():
     result = {}
     for date in dates:
         programs = Program.objects.filter(date=date).order_by('-priority')
-        premieres = programs.filter(premier=True)
+
+        premiers = [p for p in programs if p.premier]
+        non_premiers = [p for p in programs if not p.premier]
 
         seen_titles = set()
+        top_3 = []
 
-        if premieres:
-            top_3 = []
-            for prog in premieres:
-                if prog.title not in seen_titles:
-                    top_3.append(prog)
-                    seen_titles.add(prog.title)
-                    break
+        if premiers:
+            p = premiers[0]
+            top_3.append(p)
+            seen_titles.add(p.title)
 
-            regular = programs.filter(premier=False).order_by('-priority')
-            for prog in regular:
-                if prog.title not in seen_titles:
-                    top_3.append(prog)
-                    seen_titles.add(prog.title)
-                    if len(top_3) >= 3:
-                        break
+        for p in non_premiers:
+            if len(top_3) >= 3:
+                break
+            if p.title not in seen_titles:
+                top_3.append(p)
+                seen_titles.add(p.title)
 
-            result[date] = top_3
-        else:
-            regular = programs.filter(premier=False).order_by('-priority')
-            top_3 = []
-            for prog in regular:
-                if prog.title not in seen_titles:
-                    top_3.append(prog)
-                    seen_titles.add(prog.title)
-                    if len(top_3) >= 3:
-                        break
-            result[date] = top_3
+        result[date] = top_3
 
     return result
-
