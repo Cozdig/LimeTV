@@ -18,7 +18,7 @@ def generate_access_token():
     )
     return auth_response.json()["access_token"]
 
-def generate_push(access_token: str, program) -> str:
+def generate_push(access_token: str, program, time) -> str:
     """
     Отправляет промпт в GigaChat API и возвращает ответ.
     """
@@ -48,7 +48,7 @@ def generate_push(access_token: str, program) -> str:
     Канал: {program.channel_name.channel_name}
     Название: {program.title}
     Описание: {program.description}
-    Время: {program.start_time}
+    Время: {time}
 
     Стиль: как в примерах (живо, с эмоцией, с emoji подходящими к тексту)
     """
