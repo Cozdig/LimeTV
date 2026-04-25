@@ -18,21 +18,21 @@ def run_full_pipeline():
     Запускает полный пайплайн: очистка -> импорт -> расчет -> получение топа и списка уведомлений
     """
 
-    # # Шаг 0: Очистка БД
+    # Шаг 0: Очистка БД
     try:
         print("Очистка бд")
         deleted_count, _ = Program.objects.all().delete()
     except Exception as e:
         return {'status': 'error', 'step': 'cleanup', 'error': str(e)}
 
-    # # Шаг 1: Запуск фильтра
+    # Шаг 1: Запуск фильтра
     try:
         print("Запуск фильтра")
         filter('epg')
     except Exception as e:
         return {'status': 'error', 'step': 'import', 'error': str(e)}
 
-    # # Шаг 2: Расчет приоритетов
+    # Шаг 2: Расчет приоритетов
     try:
         print("Расчет приоритетов")
         push_priority_count()
