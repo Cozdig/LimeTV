@@ -37,6 +37,6 @@ def pushes_generator(result):
 
         notifications[f"{date}"] = push_list
 
-    with open("data.json", "w", encoding="utf-8") as f:
+    with open("schedule.json", "w", encoding="utf-8") as f:
         json.dump(notifications, f, ensure_ascii=False, indent=4)
 
