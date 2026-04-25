@@ -6,6 +6,9 @@ from datetime import datetime
 
 
 def add_data_in_db(file_name):
+    """
+    Берет данные из json файла канала и добавляет данные телепередач в базу данных
+    """
     with open(file_name, 'r', encoding='utf-8') as file:
         data = json.load(file)
         if not data or isinstance(data, list):

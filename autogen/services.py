@@ -115,6 +115,9 @@ def push_priority_count():
 
 
 def get_max_priority_programs():
+    """
+    Берет данные из базы данных и составляет топ-3 программ на каждый день по приоритету
+    """
     today = datetime.now().date()
     monday = today + timedelta(days=1)
     next_sunday = today + timedelta(days=7)

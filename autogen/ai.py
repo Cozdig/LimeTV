@@ -2,25 +2,30 @@ import requests
 from dotenv import load_dotenv
 import os
 
+# Импортирование api-ключа из .env файла
 load_dotenv(override=True)
 AUTH_KEY = os.getenv("AUTH_KEY")
 
 def generate_access_token():
+    """
+    Генерирует Access token,
+    Чтобы иметь возможность отправлять авторизованные запросы к API
+    """
     auth_response = requests.post(
         "https://ngw.devices.sberbank.ru:9443/api/v2/oauth",
         headers={
             "Authorization": f"Basic {AUTH_KEY}",
-            "RqUID": "6f0b1a2c-3d4e-5f6a-7b8c-9d0e1f2a3b4c",  # Любой UUID
+            "RqUID": "6f0b1a2c-3d4e-5f6a-7b8c-9d0e1f2a3b4c",
             "Content-Type": "application/x-www-form-urlencoded"
         },
         data={"scope": "GIGACHAT_API_PERS"},
-        verify=False  # Отключаем проверку SSL для простоты
+        verify=False
     )
     return auth_response.json()["access_token"]
 
-def generate_push(access_token: str, program, time) -> str:
+def generate_push(access_token, program, time):
     """
-    Отправляет промпт в GigaChat API и возвращает ответ.
+    Отправляет промпт на ИИ GigaChat, нужные данные берутся из модели
     """
     prompt = f"""
     Сгенерируй короткое push-уведомление (до 20 слов).
@@ -53,7 +58,7 @@ def generate_push(access_token: str, program, time) -> str:
     Стиль: как в примерах (живо, с эмоцией, с emoji подходящими к тексту)
     """
 
-    # Отправляем запрос к модели
+    # Отправляем запрос к api
     response = requests.post(
         "https://gigachat.devices.sberbank.ru/api/v1/chat/completions",
         headers={
@@ -70,4 +75,3 @@ def generate_push(access_token: str, program, time) -> str:
     )
 
     return response.json()["choices"][0]["message"]["content"]
-

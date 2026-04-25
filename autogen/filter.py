@@ -40,6 +40,9 @@ white_list = ["360", "РЖД ТВ", "RT", "Красная линия", "7tv",
 
 
 def filter(folder_path):
+    """
+    Фильтрует каналы по белому списку
+    """
     json_files = glob.glob(f'{folder_path}/*.json')
     for json_name in json_files:
         if os.path.getsize(json_name) <= 2048:

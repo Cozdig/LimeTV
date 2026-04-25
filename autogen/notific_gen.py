@@ -13,9 +13,16 @@ timezones = {
 }
 
 def format_time(dt):
+    """
+    Форматирует объект Date в нужный формат Часы:Минуты
+    """
     return dt.strftime("%H:%M")
 
 def pushes_generator(result):
+    """
+   Генерирует список уведомлений с временем начала, названием канала и временем отправки уведомления,
+   после записывает все уведомления в data.json
+   """
     access_token = generate_access_token()
     notifications = {}
     for date, programs in result.items():
