@@ -116,12 +116,12 @@ def push_priority_count():
 
 def get_max_priority_programs():
     today = datetime.now().date()
-    monday = today - timedelta(days=today.weekday())
-    sunday = monday + timedelta(days=6) # эту часть кинуть в агрегатор
+    monday = today + timedelta(days=1)
+    next_sunday = today + timedelta(days=7)
 
     dates = Program.objects.filter(
         date__gte=monday,
-        date__lte=sunday
+        date__lte=next_sunday
     ).values_list('date', flat=True).distinct().order_by('date')
 
     result = {}
