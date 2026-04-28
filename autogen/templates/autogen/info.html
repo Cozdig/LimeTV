@@ -1,0 +1,687 @@
+<!doctype html>
+<html lang="ru">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Push-уведомления</title>
+    <style>
+      * {
+        margin: 0;
+        padding: 0;
+        box-sizing: border-box;
+      }
+
+      body {
+        font-family: "Segoe UI", Tahoma, Geneva, Verdana, sans-serif;
+        background: #f5f6fa;
+        color: #2c3e50;
+        padding: 20px;
+      }
+
+      .container {
+        max-width: 1400px;
+        margin: 0 auto;
+      }
+
+      h1 {
+        text-align: center;
+        margin-bottom: 30px;
+        font-size: 28px;
+        color: #2c3e50;
+      }
+
+      /* Навигация по дням */
+      .day-navigation {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 8px;
+        margin-bottom: 30px;
+        padding: 15px;
+        background: white;
+        border-radius: 8px;
+        box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+        position: sticky;
+        top: 10px;
+        z-index: 100;
+      }
+
+      .day-nav-btn {
+        padding: 8px 16px;
+        background: #ecf0f1;
+        color: #2c3e50;
+        border: 2px solid transparent;
+        border-radius: 6px;
+        cursor: pointer;
+        font-size: 13px;
+        font-weight: 500;
+        transition: all 0.2s;
+        white-space: nowrap;
+      }
+
+      .day-nav-btn:hover {
+        background: #3498db;
+        color: white;
+        border-color: #2980b9;
+      }
+
+      .day-nav-btn.active {
+        background: #3498db;
+        color: white;
+        border-color: #2980b9;
+        font-weight: bold;
+      }
+
+      .day-nav-btn .badge {
+        display: inline-block;
+        margin-left: 5px;
+        padding: 2px 6px;
+        background: rgba(255, 255, 255, 0.3);
+        border-radius: 10px;
+        font-size: 11px;
+      }
+
+      .day-nav-btn.active .badge {
+        background: rgba(255, 255, 255, 0.4);
+      }
+
+      /* Поиск */
+      .filter-bar {
+        display: flex;
+        gap: 10px;
+        margin-bottom: 20px;
+        flex-wrap: wrap;
+      }
+
+      .filter-bar input {
+        padding: 10px 15px;
+        border: 1px solid #bdc3c7;
+        border-radius: 6px;
+        background: white;
+        color: #2c3e50;
+        font-size: 14px;
+        outline: none;
+        flex: 1;
+        min-width: 200px;
+        transition: border-color 0.2s;
+      }
+
+      .filter-bar input:focus {
+        border-color: #3498db;
+      }
+
+      .filter-bar input::placeholder {
+        color: #95a5a6;
+      }
+
+      .filter-bar button {
+        padding: 10px 20px;
+        background: #3498db;
+        color: white;
+        border: none;
+        border-radius: 6px;
+        cursor: pointer;
+        font-size: 14px;
+        transition: background 0.2s;
+      }
+
+      .filter-bar button:hover {
+        background: #2980b9;
+      }
+
+      /* Секции с датами */
+      .date-section {
+        margin-bottom: 40px;
+        scroll-margin-top: 100px;
+      }
+
+      .date-header {
+        font-size: 20px;
+        font-weight: bold;
+        padding: 12px 20px;
+        background: linear-gradient(135deg, #3498db, #2980b9);
+        color: white;
+        border-radius: 8px 8px 0 0;
+      }
+
+      .table-wrapper {
+        overflow-x: auto;
+        background: white;
+        border-radius: 0 0 8px 8px;
+        box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
+      }
+
+      table {
+        width: 100%;
+        border-collapse: collapse;
+        min-width: 900px;
+      }
+
+      th {
+        background: #34495e;
+        color: white;
+        padding: 14px 16px;
+        text-align: left;
+        font-size: 13px;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+        position: sticky;
+        top: 0;
+      }
+
+      td {
+        padding: 12px 16px;
+        border: 1px solid #b4b5b6;
+        font-size: 14px;
+        color: #2c3e50;
+      }
+
+      tr:hover {
+        background: rgba(52, 152, 219, 0.05);
+      }
+
+      .notification-cell {
+        display: flex;
+        align-items: flex-start;
+        gap: 8px;
+        max-width: 500px;
+      }
+
+      .notification-text {
+        line-height: 1.4;
+        flex: 1;
+      }
+
+      .copy-btn {
+        flex-shrink: 0;
+        padding: 4px 8px;
+        background: #ecf0f1;
+        color: #3498db;
+        border: 1px solid #3498db;
+        border-radius: 4px;
+        cursor: pointer;
+        font-size: 12px;
+        transition: all 0.2s;
+        white-space: nowrap;
+      }
+
+      .copy-btn:hover {
+        background: #3498db;
+        color: white;
+      }
+
+      .copy-btn.copied {
+        background: #27ae60;
+        border-color: #27ae60;
+        color: white;
+      }
+
+      .channel-badge {
+        display: inline-block;
+        padding: 4px 12px;
+        background: #3498db;
+        color: white;
+        border-radius: 20px;
+        font-size: 12px;
+        font-weight: bold;
+        white-space: nowrap;
+      }
+
+      .time {
+        white-space: nowrap;
+        font-family: "Courier New", monospace;
+        font-weight: bold;
+        color: #2980b9;
+      }
+
+      .timezone-badge {
+        display: inline-block;
+        padding: 2px 8px;
+        background: #ecf0f1;
+        border-radius: 10px;
+        font-size: 11px;
+        color: #7f8c8d;
+      }
+
+      .no-data {
+        text-align: center;
+        padding: 40px;
+        color: #95a5a6;
+        font-size: 18px;
+      }
+
+      .loading {
+        text-align: center;
+        padding: 40px;
+        color: #3498db;
+        font-size: 18px;
+      }
+
+      .program-title-cell {
+        vertical-align: middle;
+        font-weight: bold;
+        color: #2c3e50;
+        font-size: 16px;
+      }
+
+      .toast {
+        position: fixed;
+        bottom: 20px;
+        right: 20px;
+        background: #27ae60;
+        color: white;
+        padding: 12px 20px;
+        border-radius: 8px;
+        font-size: 14px;
+        z-index: 1000;
+        animation:
+          slideIn 0.3s ease,
+          fadeOut 0.3s ease 1.7s;
+      }
+
+      /* Кнопка "Наверх" */
+      .back-to-top {
+        position: fixed;
+        bottom: 20px;
+        right: 20px;
+        width: 80px;
+        height: 80px;
+        background: #3498db;
+        color: white;
+        border: none;
+        border-radius: 50%;
+        cursor: pointer;
+        font-size: 40px;
+        box-shadow: 0 2px 10px rgba(0, 0, 0, 0.2);
+        transition: all 0.3s;
+        z-index: 1000;
+        opacity: 0;
+        transform: translateY(100px);
+      }
+
+      .back-to-top.visible {
+        opacity: 1;
+        transform: translateY(0);
+      }
+
+      .back-to-top:hover {
+        background: #2980b9;
+        transform: translateY(-3px);
+      }
+
+      .today-badge {
+        display: inline-block;
+        padding: 2px 8px;
+        background: #27ae60;
+        color: white;
+        border-radius: 10px;
+        font-size: 10px;
+        margin-left: 5px;
+      }
+
+      @keyframes slideIn {
+        from {
+          transform: translateY(100px);
+          opacity: 0;
+        }
+        to {
+          transform: translateY(0);
+          opacity: 1;
+        }
+      }
+
+      @keyframes fadeOut {
+        from {
+          opacity: 1;
+        }
+        to {
+          opacity: 0;
+        }
+      }
+
+      @media (max-width: 768px) {
+        th,
+        td {
+          padding: 8px 10px;
+          font-size: 12px;
+        }
+
+        h1 {
+          font-size: 22px;
+        }
+
+        .copy-btn {
+          padding: 2px 6px;
+          font-size: 10px;
+        }
+
+        .day-navigation {
+          gap: 4px;
+          padding: 10px;
+        }
+
+        .day-nav-btn {
+          padding: 6px 10px;
+          font-size: 11px;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <div class="container">
+      <h1>📱 Push-уведомления</h1>
+
+      <!-- Навигация по дням -->
+      <div class="day-navigation" id="dayNavigation"></div>
+
+      <!-- Контент -->
+      <div id="content">
+        <div class="loading">Загрузка данных...</div>
+      </div>
+    </div>
+
+    <!-- Кнопка "Наверх" -->
+    <button
+      class="back-to-top"
+      id="backToTop"
+      onclick="scrollToTop()"
+      title="Наверх"
+    >
+      ⭡
+    </button>
+
+    <script>
+      let allDates = [];
+      let currentActiveDate = null;
+
+      async function loadNotifications() {
+        try {
+          const response = await fetch("schedule.json");
+          const data = await response.json();
+          renderAll(data);
+        } catch (error) {
+          document.getElementById("content").innerHTML =
+            '<div class="no-data">❌ Ошибка загрузки data.json<br>Убедитесь, что файл находится в той же папке</div>';
+          console.error("Ошибка загрузки:", error);
+        }
+      }
+
+      function renderAll(data) {
+        // Сортируем даты по дням недели (понедельник-воскресенье), затем по возрастанию
+        allDates = Object.keys(data).sort((a, b) => {
+          const dateA = new Date(a);
+          const dateB = new Date(b);
+
+          // Группируем по неделям
+          const weekA = getWeekNumber(dateA);
+          const weekB = getWeekNumber(dateB);
+
+          if (weekA !== weekB) {
+            return weekA - weekB; // Сначала ранние недели
+          }
+
+          // Внутри недели сортируем по дням
+          return dateA - dateB;
+        });
+
+        if (allDates.length === 0) {
+          document.getElementById("content").innerHTML =
+            '<div class="no-data">Нет уведомлений</div>';
+          return;
+        }
+
+        // Рендерим навигацию
+        renderNavigation(data);
+
+        // Рендерим все уведомления
+        renderNotifications(data);
+
+        // Показываем кнопку "Наверх" при скролле
+        setupBackToTop();
+      }
+
+      function getWeekNumber(date) {
+        const d = new Date(
+          Date.UTC(date.getFullYear(), date.getMonth(), date.getDate()),
+        );
+        const dayNum = d.getUTCDay() || 7;
+        d.setUTCDate(d.getUTCDate() + 4 - dayNum);
+        const yearStart = new Date(Date.UTC(d.getUTCFullYear(), 0, 1));
+        return Math.ceil(((d - yearStart) / 86400000 + 1) / 7);
+      }
+
+      function renderNavigation(data) {
+        const navContainer = document.getElementById("dayNavigation");
+        let html = "";
+
+        const today = new Date().toISOString().split("T")[0];
+
+        allDates.forEach((date, index) => {
+          const programs = data[date];
+          const programKeys = Object.keys(programs);
+          let totalNotifs = 0;
+          programKeys.forEach((key) => {
+            totalNotifs += programs[key].length;
+          });
+
+          const formattedDate = new Date(date).toLocaleDateString("ru-RU", {
+            weekday: "short",
+            day: "numeric",
+            month: "short",
+          });
+
+          const isToday = date === today;
+
+          html += `
+            <button class="day-nav-btn ${index === 0 ? "active" : ""}" 
+                    onclick="scrollToDate('${date}', this)" 
+                    data-date="${date}">
+              ${formattedDate}
+              ${isToday ? '<span class="today-badge">Сегодня</span>' : ""}
+              <span class="badge">${totalNotifs}</span>
+            </button>
+          `;
+        });
+
+        navContainer.innerHTML = html;
+        currentActiveDate = allDates[0];
+      }
+
+      function renderNotifications(data) {
+        const content = document.getElementById("content");
+        let html = "";
+
+        allDates.forEach((date, dateIndex) => {
+          const programs = data[date];
+          const programKeys = Object.keys(programs);
+
+          if (programKeys.length === 0) return;
+
+          const formattedDate = new Date(date).toLocaleDateString("ru-RU", {
+            weekday: "long",
+            year: "numeric",
+            month: "long",
+            day: "numeric",
+          });
+
+          const today = new Date().toISOString().split("T")[0];
+          const isToday = date === today;
+
+          let dayNotifications = 0;
+          programKeys.forEach((progKey) => {
+            dayNotifications += programs[progKey].length;
+          });
+
+          html += `<div class="date-section" id="date-${date}" data-date="${date}">`;
+          html += `<div class="date-header">📅 ${formattedDate} ${isToday ? '<span class="today-badge">Сегодня</span>' : ""} (${programKeys.length} программы, ${dayNotifications} уведомлений)</div>`;
+          html += `<div class="table-wrapper">`;
+          html += `<table>`;
+          html += `
+            <thead>
+              <tr>
+                <th>Программа</th>
+                <th>Текст уведомления</th>
+                <th>Время отправки</th>
+                <th>Время начала</th>
+                <th>Часовой пояс</th>
+                <th>Канал</th>
+              </tr>
+            </thead>
+            <tbody>
+          `;
+
+          programKeys.forEach((progKey, progIndex) => {
+            const notifications = programs[progKey];
+            const programTitle =
+              notifications[0].Title || progKey.replace(/_/g, " ");
+
+            notifications.forEach((notif, notifIndex) => {
+              const messageId = `msg-${date}-${progIndex}-${notifIndex}`;
+
+              if (notifIndex === 0) {
+                html += `<tr>
+                  <td class="program-title-cell" rowspan="${notifications.length}">${programTitle}</td>
+                  <td>
+                    <div class="notification-cell">
+                      <span class="notification-text" id="${messageId}">${notif.Message}</span>
+                      <button class="copy-btn" onclick="copyText('${messageId}', this)">📋 Копировать</button>
+                    </div>
+                  </td>
+                  <td class="time">${notif.Post_time}</td>
+                  <td class="time">${notif.Start_time}</td>
+                  <td><span class="timezone-badge">${formatTimezone(notif.Time_zone)}</span></td>
+                  <td><span class="channel-badge">${notif.Channel}</span></td>
+                </tr>`;
+              } else {
+                html += `<tr>
+                  <td>
+                    <div class="notification-cell">
+                      <span class="notification-text" id="${messageId}">${notif.Message}</span>
+                      <button class="copy-btn" onclick="copyText('${messageId}', this)">📋 Копировать</button>
+                    </div>
+                  </td>
+                  <td class="time">${notif.Post_time}</td>
+                  <td class="time">${notif.Start_time}</td>
+                  <td><span class="timezone-badge">${formatTimezone(notif.Time_zone)}</span></td>
+                  <td><span class="channel-badge">${notif.Channel}</span></td>
+                </tr>`;
+              }
+            });
+          });
+
+          html += `</tbody></table></div></div>`;
+        });
+
+        content.innerHTML = html;
+      }
+
+      function scrollToDate(date, button) {
+        // Обновляем активную кнопку
+        document
+          .querySelectorAll(".day-nav-btn")
+          .forEach((btn) => btn.classList.remove("active"));
+        button.classList.add("active");
+        currentActiveDate = date;
+
+        // Скроллим к секции
+        const element = document.getElementById(`date-${date}`);
+        if (element) {
+          element.scrollIntoView({ behavior: "smooth", block: "start" });
+        }
+      }
+
+      function scrollToTop() {
+        window.scrollTo({ top: 0, behavior: "smooth" });
+      }
+
+      function setupBackToTop() {
+        const backToTopBtn = document.getElementById("backToTop");
+
+        window.addEventListener("scroll", () => {
+          if (window.scrollY > 300) {
+            backToTopBtn.classList.add("visible");
+          } else {
+            backToTopBtn.classList.remove("visible");
+          }
+
+          // Подсвечиваем активную дату в навигации при скролле
+          const sections = document.querySelectorAll(".date-section");
+          let currentSection = null;
+
+          sections.forEach((section) => {
+            const rect = section.getBoundingClientRect();
+            if (rect.top <= 150) {
+              currentSection = section.dataset.date;
+            }
+          });
+
+          if (currentSection) {
+            document.querySelectorAll(".day-nav-btn").forEach((btn) => {
+              btn.classList.remove("active");
+              if (btn.dataset.date === currentSection) {
+                btn.classList.add("active");
+                currentActiveDate = currentSection;
+              }
+            });
+          }
+        });
+      }
+
+      function formatTimezone(offset) {
+        if (offset === null || offset === undefined) return "—";
+        if (offset === 0) return "МСК +0";
+        if (offset > 0) return `МСК +${offset}`;
+        return `МСК ${offset}`;
+      }
+
+      function copyText(elementId, button) {
+        const text = document.getElementById(elementId).textContent;
+
+        navigator.clipboard
+          .writeText(text)
+          .then(() => {
+            button.textContent = "✅ Скопировано";
+            button.classList.add("copied");
+            showToast("✅ Текст скопирован!");
+
+            setTimeout(() => {
+              button.textContent = "📋 Копировать";
+              button.classList.remove("copied");
+            }, 2000);
+          })
+          .catch((err) => {
+            const textarea = document.createElement("textarea");
+            textarea.value = text;
+            textarea.style.position = "fixed";
+            textarea.style.opacity = "0";
+            document.body.appendChild(textarea);
+            textarea.select();
+            document.execCommand("copy");
+            document.body.removeChild(textarea);
+
+            button.textContent = "✅ Скопировано";
+            button.classList.add("copied");
+            showToast("✅ Текст скопирован!");
+
+            setTimeout(() => {
+              button.textContent = "📋 Копировать";
+              button.classList.remove("copied");
+            }, 2000);
+          });
+      }
+
+      function showToast(message) {
+        const oldToast = document.querySelector(".toast");
+        if (oldToast) oldToast.remove();
+
+        const toast = document.createElement("div");
+        toast.className = "toast";
+        toast.textContent = message;
+        document.body.appendChild(toast);
+
+        setTimeout(() => toast.remove(), 2000);
+      }
+
+      loadNotifications();
+    </script>
+  </body>
+</html>
