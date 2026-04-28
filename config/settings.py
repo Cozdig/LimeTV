@@ -148,7 +148,7 @@ CELERY_ENABLE_UTC = False
 CELERY_BEAT_SCHEDULE = {
     "run-every-sunday": {
         'task': 'autogen.tasks.run_full_pipeline',
-        'schedule': crontab(day_of_week='wednesday', hour=1, minute=0), #Каждое воскресенье запускает задачу
+        'schedule': crontab(day_of_week='sunday', hour=0, minute=0), #Каждое воскресенье запускает задачу
     },
 }
 

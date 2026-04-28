@@ -119,12 +119,12 @@ def get_max_priority_programs():
     Берет данные из базы данных и составляет топ-3 программ на каждый день по приоритету
     """
     today = datetime.now().date()
-    last_monday = today - timedelta(days=today.weekday())
-    next_monday = last_monday + timedelta(days=7)
+    monday = today + timedelta(days=1)
+    next_sunday = today + timedelta(days=7)
 
     dates = Program.objects.filter(
-        date__gte=last_monday,
-        date__lt=next_monday
+        date__gte=monday,
+        date__lte=next_sunday
     ).values_list('date', flat=True).distinct().order_by('date')
 
     result = {}
