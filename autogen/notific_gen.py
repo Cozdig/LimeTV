@@ -1,12 +1,6 @@
 import json
 from datetime import timedelta
-import os
-import django
-
-os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'config.settings')
-django.setup()
 from autogen.ai import generate_access_token, generate_push
-from autogen.services import get_max_priority_programs
 
 timezones = {
     "СТС-Love": [0, 2, 4],
@@ -54,8 +48,3 @@ def pushes_generator(result):
 
     with open("schedule.json", "w", encoding="utf-8") as f:
         json.dump(notifications, f, ensure_ascii=False, indent=4)
-
-if __name__ == "__main__":
-    result = get_max_priority_programs()
-    print("Получение списка уведомлений")
-    pushes_generator(result)
