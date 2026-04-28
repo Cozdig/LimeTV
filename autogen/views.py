@@ -4,12 +4,8 @@ from django.conf import settings
 from django.http import JsonResponse
 from django.views import View
 from django.shortcuts import render
-from django.views.decorators.cache import cache_page
-from django.utils.decorators import method_decorator
-
 
 class ScheduleJsonAPIView(View):
-    @method_decorator(cache_page(3600))
     def get(self, request):
         file_path = os.path.join(settings.BASE_DIR, 'schedule.json')
 
