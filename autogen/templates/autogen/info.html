@@ -175,10 +175,6 @@
         color: #2c3e50;
       }
 
-      tr:hover {
-        background: rgba(52, 152, 219, 0.05);
-      }
-
       .notification-cell {
         display: flex;
         align-items: flex-start;
@@ -406,20 +402,9 @@
       }
 
       function renderAll(data) {
-        // Сортируем даты по дням недели (понедельник-воскресенье), затем по возрастанию
         allDates = Object.keys(data).sort((a, b) => {
           const dateA = new Date(a);
           const dateB = new Date(b);
-
-          // Группируем по неделям
-          const weekA = getWeekNumber(dateA);
-          const weekB = getWeekNumber(dateB);
-
-          if (weekA !== weekB) {
-            return weekA - weekB; // Сначала ранние недели
-          }
-
-          // Внутри недели сортируем по дням
           return dateA - dateB;
         });
 
@@ -429,24 +414,9 @@
           return;
         }
 
-        // Рендерим навигацию
         renderNavigation(data);
-
-        // Рендерим все уведомления
         renderNotifications(data);
-
-        // Показываем кнопку "Наверх" при скролле
         setupBackToTop();
-      }
-
-      function getWeekNumber(date) {
-        const d = new Date(
-          Date.UTC(date.getFullYear(), date.getMonth(), date.getDate()),
-        );
-        const dayNum = d.getUTCDay() || 7;
-        d.setUTCDate(d.getUTCDate() + 4 - dayNum);
-        const yearStart = new Date(Date.UTC(d.getUTCFullYear(), 0, 1));
-        return Math.ceil(((d - yearStart) / 86400000 + 1) / 7);
       }
 
       function renderNavigation(data) {
@@ -472,8 +442,8 @@
           const isToday = date === today;
 
           html += `
-            <button class="day-nav-btn ${index === 0 ? "active" : ""}" 
-                    onclick="scrollToDate('${date}', this)" 
+            <button class="day-nav-btn ${index === 0 ? "active" : ""}"
+                    onclick="scrollToDate('${date}', this)"
                     data-date="${date}">
               ${formattedDate}
               ${isToday ? '<span class="today-badge">Сегодня</span>' : ""}
@@ -490,7 +460,7 @@
         const content = document.getElementById("content");
         let html = "";
 
-        allDates.forEach((date, dateIndex) => {
+        allDates.forEach((date) => {
           const programs = data[date];
           const programKeys = Object.keys(programs);
 
@@ -531,38 +501,39 @@
 
           programKeys.forEach((progKey, progIndex) => {
             const notifications = programs[progKey];
-            const programTitle =
-              notifications[0].Title || progKey.replace(/_/g, " ");
+            const programTitle = notifications[0].Title || progKey.replace(/_/g, " ");
 
             notifications.forEach((notif, notifIndex) => {
               const messageId = `msg-${date}-${progIndex}-${notifIndex}`;
+              // Экранируем кавычки в тексте сообщения
+              const safeMessage = notif.Message.replace(/'/g, "\\'").replace(/"/g, '&quot;');
 
               if (notifIndex === 0) {
                 html += `<tr>
-                  <td class="program-title-cell" rowspan="${notifications.length}">${programTitle}</td>
+                  <td class="program-title-cell" rowspan="${notifications.length}">${escapeHtml(programTitle)}</td>
                   <td>
                     <div class="notification-cell">
-                      <span class="notification-text" id="${messageId}">${notif.Message}</span>
+                      <span class="notification-text" id="${messageId}">${escapeHtml(notif.Message)}</span>
                       <button class="copy-btn" onclick="copyText('${messageId}', this)">📋 Копировать</button>
                     </div>
                   </td>
                   <td class="time">${notif.Post_time}</td>
                   <td class="time">${notif.Start_time}</td>
                   <td><span class="timezone-badge">${formatTimezone(notif.Time_zone)}</span></td>
-                  <td><span class="channel-badge">${notif.Channel}</span></td>
+                  <td><span class="channel-badge">${escapeHtml(notif.Channel)}</span></td>
                 </tr>`;
               } else {
                 html += `<tr>
                   <td>
                     <div class="notification-cell">
-                      <span class="notification-text" id="${messageId}">${notif.Message}</span>
+                      <span class="notification-text" id="${messageId}">${escapeHtml(notif.Message)}</span>
                       <button class="copy-btn" onclick="copyText('${messageId}', this)">📋 Копировать</button>
                     </div>
                   </td>
                   <td class="time">${notif.Post_time}</td>
                   <td class="time">${notif.Start_time}</td>
                   <td><span class="timezone-badge">${formatTimezone(notif.Time_zone)}</span></td>
-                  <td><span class="channel-badge">${notif.Channel}</span></td>
+                  <td><span class="channel-badge">${escapeHtml(notif.Channel)}</span></td>
                 </tr>`;
               }
             });
@@ -574,15 +545,19 @@
         content.innerHTML = html;
       }
 
+      // Функция для экранирования HTML
+      function escapeHtml(text) {
+        if (!text) return '';
+        const div = document.createElement('div');
+        div.textContent = text;
+        return div.innerHTML;
+      }
+
       function scrollToDate(date, button) {
-        // Обновляем активную кнопку
-        document
-          .querySelectorAll(".day-nav-btn")
-          .forEach((btn) => btn.classList.remove("active"));
+        document.querySelectorAll(".day-nav-btn").forEach((btn) => btn.classList.remove("active"));
         button.classList.add("active");
         currentActiveDate = date;
 
-        // Скроллим к секции
         const element = document.getElementById(`date-${date}`);
         if (element) {
           element.scrollIntoView({ behavior: "smooth", block: "start" });
@@ -603,7 +578,6 @@
             backToTopBtn.classList.remove("visible");
           }
 
-          // Подсвечиваем активную дату в навигации при скролле
           const sections = document.querySelectorAll(".date-section");
           let currentSection = null;
 
@@ -633,40 +607,76 @@
         return `МСК ${offset}`;
       }
 
+      // Улучшенная функция копирования с резервным методом
       function copyText(elementId, button) {
-        const text = document.getElementById(elementId).textContent;
+        const element = document.getElementById(elementId);
+        if (!element) {
+          showToast("❌ Ошибка: текст не найден");
+          return;
+        }
 
-        navigator.clipboard
-          .writeText(text)
-          .then(() => {
-            button.textContent = "✅ Скопировано";
-            button.classList.add("copied");
+        const text = element.textContent;
+
+        if (!text || text.length === 0) {
+          showToast("❌ Нет текста для копирования");
+          return;
+        }
+
+        // Сохраняем оригинальный текст кнопки
+        const originalText = button.textContent;
+
+        // Метод 1: Современный Clipboard API
+        if (navigator.clipboard && navigator.clipboard.writeText) {
+          navigator.clipboard.writeText(text)
+            .then(() => {
+              showCopySuccess(button, originalText);
+              showToast("✅ Текст скопирован!");
+            })
+            .catch((err) => {
+              console.warn("Clipboard API failed, trying fallback:", err);
+              fallbackCopyText(text, button, originalText);
+            });
+        } else {
+          // Метод 2: Резервный метод через textarea
+          fallbackCopyText(text, button, originalText);
+        }
+      }
+
+      function fallbackCopyText(text, button, originalText) {
+        const textarea = document.createElement("textarea");
+        textarea.value = text;
+        textarea.style.position = "fixed";
+        textarea.style.top = "0";
+        textarea.style.left = "0";
+        textarea.style.width = "1px";
+        textarea.style.height = "1px";
+        textarea.style.opacity = "0";
+        document.body.appendChild(textarea);
+        textarea.focus();
+        textarea.select();
+
+        try {
+          const successful = document.execCommand("copy");
+          if (successful) {
+            showCopySuccess(button, originalText);
             showToast("✅ Текст скопирован!");
+          } else {
+            showToast("❌ Не удалось скопировать");
+          }
+        } catch (err) {
+          console.error("Fallback copy failed:", err);
+          showToast("❌ Ошибка копирования");
+        }
+        document.body.removeChild(textarea);
+      }
 
-            setTimeout(() => {
-              button.textContent = "📋 Копировать";
-              button.classList.remove("copied");
-            }, 2000);
-          })
-          .catch((err) => {
-            const textarea = document.createElement("textarea");
-            textarea.value = text;
-            textarea.style.position = "fixed";
-            textarea.style.opacity = "0";
-            document.body.appendChild(textarea);
-            textarea.select();
-            document.execCommand("copy");
-            document.body.removeChild(textarea);
-
-            button.textContent = "✅ Скопировано";
-            button.classList.add("copied");
-            showToast("✅ Текст скопирован!");
-
-            setTimeout(() => {
-              button.textContent = "📋 Копировать";
-              button.classList.remove("copied");
-            }, 2000);
-          });
+      function showCopySuccess(button, originalText) {
+        button.textContent = "✅ Скопировано";
+        button.classList.add("copied");
+        setTimeout(() => {
+          button.textContent = originalText;
+          button.classList.remove("copied");
+        }, 2000);
       }
 
       function showToast(message) {
